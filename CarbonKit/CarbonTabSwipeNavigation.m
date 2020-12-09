@@ -158,7 +158,7 @@
 
 - (void)segmentedTapped:(CarbonTabSwipeSegmentedControl *)segment {
     BOOL animate = ([self viewControllerAtIndex:self.currentTabIndex] != [self.pageViewController.viewControllers firstObject]);
-    [self moveToIndex:segment.selectedSegmentIndex withAnimation:YES];
+    [self moveToIndex:segment.selectedSegmentIndex withAnimation:animate];
 }
 
 - (void)moveToIndex:(NSUInteger)index withAnimation:(BOOL)animate {
