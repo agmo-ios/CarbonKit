@@ -31,6 +31,7 @@
 @implementation CarbonTabSwipeNavigation {
     BOOL isLoaded;
     BOOL isSwipeLocked;
+    BOOL transitionInProgress;
     NSInteger selectedIndex;
     CGPoint previewsOffset;
 }
@@ -182,6 +183,7 @@
     self.pageViewController.view.userInteractionEnabled = NO;
 
     id animateCompletionBlock = ^(BOOL finished) {
+        transitionInProgress = !finished;
         isSwipeLocked = NO;
         selectedIndex = index;
         self.carbonSegmentedControl.userInteractionEnabled = YES;
@@ -192,10 +194,18 @@
 
     [self callDelegateForTargetIndex];
 
-    [self.pageViewController setViewControllers:@[ viewController ]
-                                      direction:animateDirection
-                                       animated:animate
-                                     completion:animateCompletionBlock];
+    if (!transitionInProgress) { //AGMO QyiRen: Only perform this when transition between tabs has finished
+        dispatch_async(dispatch_get_main_queue(), ^{
+            transitionInProgress = YES;
+            [self.pageViewController setViewControllers:@[ viewController ]
+                                              direction:animateDirection
+                                               animated:animate
+                                             completion:animateCompletionBlock];
+        });
+    }
+    else { //AGMO QyiRen: Else, reset it to the current index before the swiping/selecting
+        [self callDelegateForCurrentIndex];
+    }
 }
 
 - (void)syncIndicator {
@@ -287,7 +297,8 @@
 }
 
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView {
-
+    transitionInProgress = (scrollView.isTracking || scrollView.isDecelerating);
+    
     CGPoint offset = scrollView.contentOffset;
     CGFloat segmentedWidth = CGRectGetWidth(self.carbonSegmentedControl.frame);
     CGFloat scrollViewWidth = CGRectGetWidth(scrollView.frame);
@@ -434,6 +445,10 @@
                      }];
 
     previewsOffset = scrollView.contentOffset;
+}
+
+- (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView {
+    transitionInProgress = NO;
 }
 
 #pragma mark - Toolbar position
